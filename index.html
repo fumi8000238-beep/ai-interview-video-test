@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI面接 録画テスト</title>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --card: #ffffff;
+    --text: #1f1f1f;
+    --muted: #6b6b6b;
+    --line: #dcdad4;
+    --accent: #1f5fbf;
+    --danger: #c0392b;
+    --ok: #1e7f4f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161616;
+      --card: #222222;
+      --text: #ececec;
+      --muted: #a0a0a0;
+      --line: #3a3a3a;
+      --accent: #6ea2f2;
+      --danger: #ef7a6c;
+      --ok: #5cc48f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.6;
+  }
+  main { max-width: 520px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  h2 { font-size: 17px; margin: 0 0 8px; }
+  .note { color: var(--muted); font-size: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .rules { padding-left: 1.2em; margin: 8px 0 12px; font-size: 15px; }
+  .rules li { margin-bottom: 6px; }
+  .check { display: flex; gap: 8px; align-items: flex-start; font-size: 15px; }
+  .check input { width: 20px; height: 20px; margin-top: 3px; flex: none; }
+  button {
+    display: block;
+    width: 100%;
+    font-size: 16px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--text);
+    margin-top: 12px;
+  }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: 0.45; }
+  .stage {
+    position: relative;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 3 / 4;
+    max-height: 60vh;
+    margin: 0 auto;
+  }
+  .stage video { width: 100%; height: 100%; object-fit: cover; }
+  .mirror { transform: scaleX(-1); }
+  #asker {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34%;
+    height: auto;
+    aspect-ratio: 3 / 4;
+    border-radius: 8px;
+    border: 2px solid #fff;
+    background: #333;
+  }
+  .badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 14px;
+  }
+  .badge.rec { background: var(--danger); }
+  .qtext {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 24px 16px 14px;
+    color: #fff;
+    font-size: 17px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+  }
+  #progress { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+  #timer { font-size: 28px; font-variant-numeric: tabular-nums; text-align: center; margin: 12px 0 0; }
+  .uploads { list-style: none; padding: 0; margin: 12px 0 0; font-size: 14px; }
+  .uploads li { padding: 4px 0; border-top: 1px solid var(--line); }
+  .ok { color: var(--ok); }
+  .error { color: var(--danger); }
+  #message { min-height: 1.6em; font-size: 14px; margin: 12px 0 0; }
+  details { font-size: 13px; color: var(--muted); margin-top: 24px; }
+  pre { white-space: pre-wrap; word-break: break-all; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <!-- 1. 案内と同意 -->
+  <section id="intro" class="card">
+    <h1>録画面接テスト</h1>
+    <p class="note">質問は3問で、全部で5分ほどです。</p>
+    <ul class="rules">
+      <li>質問が流れ終わると、すぐに録画が始まります（考える時間はありません）</li>
+      <li>撮り直しはできません。1回きりの本番です</li>
+      <li>1問の答えは最大1分です。話し終えたら「回答を終える」を押してください</li>
+      <li>静かな場所で、顔が映るようにしてください</li>
+    </ul>
+    <label class="check"><input type="checkbox" id="agree"> 録画すること、録画を採用の判断に使うことに同意します</label>
+    <button id="toCheck" class="primary" disabled>カメラとマイクを確認する</button>
+  </section>
+
+  <!-- 2. カメラとマイクの確認 -->
+  <section id="check" class="card" hidden>
+    <h2>カメラとマイクの確認</h2>
+    <div class="stage"><video id="selfCheck" class="mirror" playsinline autoplay muted></video></div>
+    <p class="note">顔が映っていて、明るさが十分か確かめてください。始めると、1問目の質問が流れます。</p>
+    <button id="start" class="primary">面接を始める</button>
+  </section>
+
+  <!-- 3. 質問と回答 -->
+  <section id="interview" hidden>
+    <p id="progress"></p>
+    <div class="stage">
+      <video id="selfLive" class="mirror" playsinline autoplay muted></video>
+      <video id="asker" playsinline hidden></video>
+      <span id="badge" class="badge"></span>
+      <p id="qtext" class="qtext"></p>
+    </div>
+    <p id="timer"></p>
+    <button id="finish" class="primary" disabled>回答を終える</button>
+  </section>
+
+  <!-- 4. 完了 -->
+  <section id="done" class="card" hidden>
+    <h2>面接はこれで終わりです</h2>
+    <p>お疲れさまでした。結果はメールでお知らせします。</p>
+    <button id="retry" hidden>送れなかった回答を送り直す</button>
+  </section>
+
+  <ul id="uploads" class="uploads"></ul>
+  <p id="message" role="status"></p>
+
+  <details>
+    <summary>端末の情報（うまくいかないときに見せてください）</summary>
+    <pre id="env"></pre>
+  </details>
+</main>
+
+<script>
+  // Apps ScriptをWebアプリとして公開したURL。保存できるかは、招待リンクの番号（?k=…）で決まる
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxQ1iGGNl7jRadIHB4tkhoRMS1Y_VNuFrC0UxFmMVVh2vTZ90ODtDFdXsmqpgcW4nbQ/exec';
+  const INVITE = new URLSearchParams(location.search).get('k') || '';
+  const ANSWER_SEC = 60; // 1問の答えの上限
+  const PREP_SEC = 0; // 質問のあと録画を始めるまでの秒数。0ならすぐ始める
+  // video に面接官の質問動画のURLを入れると、その動画を流す。空なら端末の読み上げで代用する
+  const QUESTIONS = [
+    { text: '30秒ほどで自己紹介をお願いします。', video: '' },
+    { text: 'これまでで一番がんばったことは何ですか。', video: '' },
+    { text: '働くうえで大切にしたいことは何ですか。', video: '' },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const screens = ['intro', 'check', 'interview', 'done'];
+  let stream = null;
+  let recorder = null;
+  let sessionId = '';
+  let tick = null;
+  let uploadChain = Promise.resolve();
+  const results = []; // { no, blob, ok, li }
+
+  function show(id) {
+    screens.forEach((s) => { $(s).hidden = s !== id; });
+    window.scrollTo(0, 0);
+  }
+
+  function setMessage(text, kind) {
+    $('message').textContent = text;
+    $('message').className = kind || '';
+  }
+
+  function fmt(sec) {
+    const s = Math.max(0, Math.round(sec));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  // iPhoneのSafariはvideo/mp4、AndroidのChromeはvideo/webmで録れることが多い
+  function pickMime() {
+    if (typeof MediaRecorder === 'undefined') return '';
+    const candidates = ['video/mp4', 'video/webm;codecs=vp8,opus', 'video/webm'];
+    return candidates.find((t) => MediaRecorder.isTypeSupported(t)) || '';
+  }
+
+  function newSessionId() {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    const stamp = d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+    return stamp + '-' + Math.random().toString(36).slice(2, 6);
+  }
+
+  function showEnv() {
+    $('env').textContent = [
+      'ブラウザ: ' + navigator.userAgent,
+      '安全な接続(https): ' + window.isSecureContext,
+      'カメラ・マイクAPI: ' + Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+      '録画API: ' + (typeof MediaRecorder !== 'undefined'),
+      '録画形式: ' + (pickMime() || '指定なし'),
+      '読み上げ: ' + ('speechSynthesis' in window),
+    ].join('\n');
+  }
+
+  let inviteOk = false;
+  function updateStartButton() {
+    $('toCheck').disabled = !(inviteOk && $('agree').checked);
+  }
+  $('agree').addEventListener('change', updateStartButton);
+
+  // 招待リンクが使えるかを、面接を始める前に確かめる（確かめるだけで、まだ使ったことにはならない）
+  async function checkInvite() {
+    if (!INVITE) {
+      setMessage('招待リンクから開いてください。届いたメールのリンクを押すと、このページが開きます。', 'error');
+      return;
+    }
+    setMessage('招待リンクを確かめています…');
+    try {
+      const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'check', invite: INVITE }) });
+      const out = await res.json();
+      if (!out.ok) throw new Error(out.error || 'この招待リンクは使えません');
+      inviteOk = true;
+      setMessage('');
+    } catch (err) {
+      setMessage(err.message + '。お手数ですが、案内をくれた担当者に連絡してください。', 'error');
+    }
+    updateStartButton();
+  }
+
+  $('toCheck').addEventListener('click', async () => {
+    if (!window.isSecureContext) {
+      setMessage('カメラは https のページでしか使えません。公開したURLで開いてください。', 'error');
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setMessage('このブラウザでは録画できません。iPhoneはSafari、AndroidはChromeで開いてください。', 'error');
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: true,
+      });
+    } catch (err) {
+      const msg = err.name === 'NotAllowedError'
+        ? 'カメラとマイクの使用が許可されていません。ブラウザの設定で許可してください。'
+        : 'カメラかマイクを開けませんでした（' + err.name + '）。';
+      setMessage(msg, 'error');
+      return;
+    }
+    setMessage('');
+    $('selfCheck').srcObject = stream;
+    show('check');
+  });
+
+  $('start').addEventListener('click', () => {
+    sessionId = newSessionId();
+    $('selfLive').srcObject = stream;
+    show('interview');
+    // 読み上げや動画の再生はボタンを押した流れの中で始めないと、iPhoneで止められる
+    runQuestion(0);
+  });
+
+  function playQuestion(q) {
+    return new Promise((resolve) => {
+      if (q.video) {
+        const v = $('asker');
+        v.hidden = false;
+        v.src = q.video;
+        v.onended = () => { v.hidden = true; resolve(); };
+        v.onerror = () => { v.hidden = true; resolve(); };
+        v.play().catch(() => { v.hidden = true; resolve(); });
+        return;
+      }
+      if (!('speechSynthesis' in window)) {
+        setTimeout(resolve, 3000);
+        return;
+      }
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(q.text);
+      u.lang = 'ja-JP';
+      // 読み上げ終わりの合図が来ない端末もあるので、文字数から決めた時間で先に進める
+      const fallback = setTimeout(resolve, 2000 + q.text.length * 250);
+      u.onend = () => { clearTimeout(fallback); resolve(); };
+      u.onerror = () => { clearTimeout(fallback); resolve(); };
+      speechSynthesis.speak(u);
+    });
+  }
+
+  async function runQuestion(i) {
+    const q = QUESTIONS[i];
+    $('progress').textContent = '質問 ' + (i + 1) + ' / ' + QUESTIONS.length;
+    $('qtext').textContent = q.text;
+    $('badge').textContent = '質問を聞いてください';
+    $('badge').className = 'badge';
+    $('timer').textContent = '';
+    $('finish').disabled = true;
+
+    await playQuestion(q);
+    for (let s = PREP_SEC; s > 0; s--) {
+      $('badge').textContent = s + '秒後に録画が始まります';
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    record(i);
+  }
+
+  function record(i) {
+    const mime = pickMime();
+    const options = { videoBitsPerSecond: 600000, audioBitsPerSecond: 64000 };
+    if (mime) options.mimeType = mime;
+    const chunks = [];
+    recorder = new MediaRecorder(stream, options);
+    recorder.addEventListener('dataavailable', (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    });
+    const startedAt = Date.now();
+    recorder.addEventListener('stop', () => {
+      clearInterval(tick);
+      const seconds = Math.round((Date.now() - startedAt) / 1000);
+      const blob = new Blob(chunks, { type: recorder.mimeType || mime || 'video/webm' });
+      queueUpload(i, blob, seconds);
+      if (i + 1 < QUESTIONS.length) {
+        runQuestion(i + 1);
+      } else {
+        finishInterview();
+      }
+    });
+
+    recorder.start(1000);
+    $('badge').textContent = '● 録画中';
+    $('badge').className = 'badge rec';
+    $('finish').disabled = false;
+    $('timer').textContent = '0:00 / ' + fmt(ANSWER_SEC);
+    tick = setInterval(() => {
+      const sec = (Date.now() - startedAt) / 1000;
+      $('timer').textContent = fmt(sec) + ' / ' + fmt(ANSWER_SEC);
+      // 上限を超えたら時間切れで次へ
+      if (sec >= ANSWER_SEC && recorder.state === 'recording') recorder.stop();
+    }, 250);
+  }
+
+  $('finish').addEventListener('click', () => {
+    if (recorder && recorder.state === 'recording') {
+      $('finish').disabled = true;
+      recorder.stop();
+    }
+  });
+
+  function finishInterview() {
+    stream.getTracks().forEach((t) => t.stop());
+    show('done');
+    uploadChain.then(updateRetry);
+  }
+
+  function toBase64(b) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1]);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(b);
+    });
+  }
+
+  // 送信は1件ずつ順番に行う（同時に送ると保存先のフォルダが重複するため）
+  function queueUpload(i, blob, seconds) {
+    const li = document.createElement('li');
+    li.textContent = '質問' + (i + 1) + '：送信を待っています（' + Math.round(blob.size / 1024) + 'KB）';
+    $('uploads').append(li);
+    const item = { i, blob, seconds, ok: false, li };
+    results.push(item);
+    uploadChain = uploadChain.then(() => upload(item));
+  }
+
+  async function upload(item) {
+    const no = item.i + 1;
+    item.li.textContent = '質問' + no + '：送信しています…';
+    item.li.className = '';
+    if (!GAS_URL.startsWith('https://')) {
+      item.li.textContent = '質問' + no + '：送り先（GAS_URL）がまだ設定されていません';
+      item.li.className = 'error';
+      return;
+    }
+    try {
+      const data = await toBase64(item.blob);
+      // Content-Typeを付けない（text/plainで送る）と、ブラウザの事前確認なしでApps Scriptに届く
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          invite: INVITE,
+          sessionId: sessionId,
+          no: no,
+          question: QUESTIONS[item.i].text,
+          mimeType: item.blob.type,
+          ext: item.blob.type.includes('mp4') ? 'mp4' : 'webm',
+          seconds: item.seconds,
+          userAgent: navigator.userAgent,
+          data: data,
+        }),
+      });
+      const out = await res.json();
+      if (!out.ok) throw new Error(out.error || '保存に失敗しました');
+      item.ok = true;
+      item.li.textContent = '質問' + no + '：保存しました（' + item.seconds + '秒）';
+      item.li.className = 'ok';
+    } catch (err) {
+      item.li.textContent = '質問' + no + '：送れませんでした（' + err.message + '）';
+      item.li.className = 'error';
+    }
+  }
+
+  function updateRetry() {
+    $('retry').hidden = results.every((r) => r.ok);
+  }
+
+  $('retry').addEventListener('click', () => {
+    results.filter((r) => !r.ok).forEach((r) => { uploadChain = uploadChain.then(() => upload(r)); });
+    uploadChain.then(updateRetry);
+  });
+
+  showEnv();
+  checkInvite();
+</script>
+</body>
+</html>
