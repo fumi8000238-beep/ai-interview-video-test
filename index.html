@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AI面接 録画テスト</title>
+<script>
+  // iPhoneでSafari以外（Chrome・LINEの中など）で開かれたら、読み込んだ瞬間にSafariへ移す
+  (function () {
+    var ua = navigator.userAgent;
+    var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (!ios) return;
+    if (/Line\//.test(ua) && location.search.indexOf('openExternalBrowser=1') < 0) {
+      location.replace(location.href + (location.search ? '&' : '?') + 'openExternalBrowser=1');
+      return;
+    }
+    if (/CriOS|FxiOS|EdgiOS|OPiOS|Line\/|GSA\/|FBAN|FBAV|Instagram/.test(ua)) {
+      location.replace('x-safari-' + location.href);
+    }
+  })();
+</script>
 <style>
   :root {
     --bg: #f7f6f3;
@@ -14,6 +29,8 @@
     --accent: #1f5fbf;
     --danger: #c0392b;
     --ok: #1e7f4f;
+    --warn-bg: #fdf1dc;
+    --warn-text: #7a4a00;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -25,6 +42,8 @@
       --accent: #6ea2f2;
       --danger: #ef7a6c;
       --ok: #5cc48f;
+      --warn-bg: #3a2c12;
+      --warn-text: #f3cf8a;
     }
   }
   * { box-sizing: border-box; }
@@ -114,6 +133,7 @@
   .ok { color: var(--ok); }
   .error { color: var(--danger); }
   #message { min-height: 1.6em; font-size: 14px; margin: 12px 0 0; }
+  .warn { background: var(--warn-bg); color: var(--warn-text); border-radius: 8px; padding: 10px 12px; font-size: 14px; margin: 0 0 12px; }
   details { font-size: 13px; color: var(--muted); margin-top: 24px; }
   pre { white-space: pre-wrap; word-break: break-all; margin: 8px 0 0; }
 </style>
@@ -123,6 +143,8 @@
   <!-- 1. 案内と同意 -->
   <section id="intro" class="card">
     <h1>録画面接テスト</h1>
+    <p id="browserNote" class="warn" hidden></p>
+    <button id="copyLink" hidden>このページのリンクをコピーする</button>
     <p class="note">質問は3問で、全部で5分ほどです。</p>
     <ul class="rules">
       <li>質問が流れ終わると、すぐに録画が始まります（考える時間はありません）</li>
@@ -452,7 +474,36 @@
     uploadChain.then(updateRetry);
   });
 
+  // iPhoneのSafari以外（Chromeなど）や、アプリの中のブラウザ（LINE・Gmailなど）では、録画が動かないことがある
+  function checkBrowser() {
+    const ua = navigator.userAgent;
+    const ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const android = /Android/.test(ua);
+    const inApp = /Line\/|FBAN|FBAV|Instagram|GSA\/|MicroMessenger/i.test(ua);
+    const iosOther = ios && /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    let note = '';
+    if (ios && (iosOther || inApp)) {
+      note = 'iPhoneでは、Safariで開いてください。下のボタンでリンクをコピーし、Safariのアドレス欄に貼り付けると開けます。';
+    } else if (android && inApp) {
+      note = 'アプリの中のブラウザでは録画できないことがあります。下のボタンでリンクをコピーし、Chromeで開いてください。';
+    }
+    if (!note) return;
+    $('browserNote').textContent = note;
+    $('browserNote').hidden = false;
+    $('copyLink').hidden = false;
+  }
+
+  $('copyLink').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      $('copyLink').textContent = 'コピーしました。Safariに貼り付けて開いてください';
+    } catch (err) {
+      window.prompt('このリンクをコピーしてください', location.href);
+    }
+  });
+
   showEnv();
+  checkBrowser();
   checkInvite();
 </script>
 </body>
