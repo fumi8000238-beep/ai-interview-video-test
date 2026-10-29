@@ -386,7 +386,11 @@
   function toBase64(b) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(',')[1]);
+      // 形式名にカンマが入る（video/mp4;codecs=avc1,opus など）ので、「base64,」の後ろを取り出す
+      reader.onload = () => {
+        const s = String(reader.result);
+        resolve(s.slice(s.indexOf('base64,') + 7));
+      };
       reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(b);
     });
